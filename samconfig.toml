@@ -1,0 +1,14 @@
+version = 0.1
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "currency-exchange-tracking"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-12345"
+s3_prefix = "currency-exchange-tracking-dev"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []
+parameter_overrides = 'ApiStageName="dev" TableName="currencies"  '
+

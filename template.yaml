@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Currency exchange tracking application
+
+Parameters:
+  ApiName:
+    Type: String
+    Default: currency-exchange-api
+  ApiStageName:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+  TableName:
+    Type: String
+    Default: currencies
+
+Resources:
+  CurrencyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref ApiName
+      StageName: !Ref ApiStageName
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  FeedCurrenciesLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Download currencies from the external feed and import into dynamodb
+      FunctionName: FeedCurrenciesLambda
+      Runtime: python3.9
+      CodeUri: functions/
+      Handler: handlers.feed_currencies_handler
+      Architectures:
+        - x86_64
+      Timeout: 30
+      MemorySize: 128
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+      Events:
+        CloudWatchEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(00 16 * * ? *) # 16:00 AM (UTC) every day
+
+  RetrieveCurrenciesLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Return list of currencies
+      FunctionName: RetrieveCurrencies
+      Runtime: python3.9
+      CodeUri: functions/
+      Handler: handlers.get_currencies_handler
+      Architectures:
+        - x86_64
+      Timeout: 30
+      MemorySize: 128
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+      Events:
+        RestApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CurrencyApi
+            Method: GET
+            Path: /currencies
+
+  CurrencyTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TableName: !Ref TableName
+      KeySchema:
+        - { AttributeName: currency_code, KeyType: HASH } # Partition key
+        - { AttributeName: date, KeyType: RANGE } # Sort key
+      AttributeDefinitions:
+        - { AttributeName: currency_code, AttributeType: S }
+        - { AttributeName: date, AttributeType: S }
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        - IndexName: date-index
+          KeySchema:
+            - { AttributeName: date, KeyType: HASH }
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+
+Outputs:
+  GetCurrenciesUrl:
+    Description: "API endpoint to get current exchange rates and fluctuations as compared to last day"
+    Value: !Sub "https://${CurrencyApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStageName}/currencies"
