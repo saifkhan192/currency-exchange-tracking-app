@@ -2,7 +2,8 @@
 [![Author](http://img.shields.io/badge/author-@saifkhan192-blue.svg)](https://www.linkedin.com/in/saifullah-khan-02318086/)
 
 A simple currency exchange tracking application using AWS Serverless environment and services.
-Application relys on European Central Bank Data (https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html)
+Application relies on European Central Bank Data 
+(https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html)
 
 1. Exchange rates are fetched every day and stored in a dynamodb table
 2. The application exposes a public REST API endpoint that provides current exchange rate information for all tracked currencies and their change compared to the previous day for all the tracked currencies.
@@ -38,7 +39,6 @@ Application relys on European Central Bank Data (https://www.ecb.europa.eu/stats
 ├── samconfig.toml
 ├── template.yaml
 └── tests
-    ├── __init.py
     ├── __init__.py
     ├── integration
     │   ├── __init__.py
